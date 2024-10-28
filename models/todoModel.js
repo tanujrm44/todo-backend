@@ -1,11 +1,13 @@
-const todoModel = new Schema(
+import mongoose from "mongoose"
+
+const todoModel = new mongoose.Schema(
   {
     user: {
-      type: Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: "User",
     },
-    name: {
+    title: {
       type: String,
       required: true,
     },

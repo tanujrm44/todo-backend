@@ -6,6 +6,9 @@ import connectDB from "./config/db.js"
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js"
 import cookieParser from "cookie-parser"
 import userRoutes from "./routes/userRoutes.js"
+import todoRoutes from "./routes/todoRoutes.js"
+import authRoutes from "./routes/authRoutes.js"
+import passport from "./utils/passport.js"
 
 dotenv.config()
 
@@ -29,11 +32,14 @@ app.use(
 )
 
 app.use(cookieParser())
+passport(app)
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-app.use("/api/users", userRoutes)
+app.use("/auth", authRoutes)
+app.use("/api/auth", userRoutes)
+app.use("/api/todo", todoRoutes)
 
 if (process.env.NODE_ENV === "production") {
   const __dirname = path.resolve()

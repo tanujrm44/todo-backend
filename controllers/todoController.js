@@ -9,23 +9,47 @@ const createTodo = asyncHandler(async (req, res) => {
     throw new Error("Title and Description are required")
   }
 
-  await Todo.create({ title, description })
+  await Todo.create({ user: req.user, title, description })
 
   res.status(201).json({ title, description })
 })
 
 const getTodos = asyncHandler(async (req, res) => {
-  const todos = await Todo.find({})
-  res.json(todos)
+  const userId = req.user ? req.user._id : null
+
+  if (!userId) {
+    res.status(400).json({ message: "User not authenticated" })
+    return
+  }
+
+  const searchFilter = req.query.term
+    ? {
+        name: {
+          $regex: req.query.term,
+          $options: "i",
+        },
+      }
+    : {}
+
+  // Get the field to sort by and sort direction from the query parameters
+  const sortField = req.query.sortField || "createdAt" // default to 'createdAt'
+  const sortDirection = req.query.sort === "desc" ? -1 : 1
+  const sortOption = {}
+  sortOption[sortField] = sortDirection
+
+  try {
+    const todos = await Todo.find({ user: userId, ...searchFilter }).sort(
+      sortOption
+    )
+    res.json(todos)
+  } catch (error) {
+    console.error("Error fetching todos:", error)
+    res.status(500).json({ message: "Error fetching todos" })
+  }
 })
 
 const editTodo = asyncHandler(async (req, res) => {
   const { title, description, status } = req.body
-
-  if (!title || !description || !status) {
-    res.status(400)
-    throw new Error("Title, Description, and Status are required")
-  }
 
   const todo = await Todo.findById(req.params.id)
 
@@ -34,9 +58,15 @@ const editTodo = asyncHandler(async (req, res) => {
     throw new Error("Todo not found")
   }
 
-  todo.title = title
-  todo.description = description
-  todo.status = status
+  if (title !== undefined) {
+    todo.title = title
+  }
+  if (description !== undefined) {
+    todo.description = description
+  }
+  if (status !== undefined) {
+    todo.status = status
+  }
 
   const updatedTodo = await todo.save()
 
@@ -69,7 +99,7 @@ const deleteTodo = asyncHandler(async (req, res) => {
   const todo = await Todo.findById(req.params.id)
 
   if (todo) {
-    await todo.remove()
+    await Todo.findByIdAndDelete(req.params.id)
     res.json({ message: "Todo removed" })
   } else {
     res.status(404)
